@@ -1,0 +1,156 @@
+const Video = require("../models/Video");
+
+exports.getAllVideos = async (req, res) => {
+  try {
+    const videos = await Video.find();
+
+    res.status(200).json({
+      success: true,
+      count: videos.length,
+      data: videos,
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
+};
+
+// POST - CUSTOM VIDEO RESPONSE
+exports.getVideoStructured = async (req, res) => {
+  try {
+    const { userId} = req.body;
+
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid request",
+      });
+    }
+
+    const videos = await Video.find({ userId });
+
+    // Default buckets (never undefined)
+    const result = {
+      free: [],
+      entry: [],
+      advance: [],
+    };
+
+   videos.forEach((video) => {
+      if (result[video.type]) {
+        result[video.type].push(video.videoUrl);
+      }
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "Video fetch successfully",
+
+      type: [
+        {
+          type: "free videos",
+          Tcount: result.free.length,
+          videos: result.free,
+        },
+      ],
+
+      type2: [
+        {
+          type: "entry Level",
+          count: result.entry.length,
+          videos: result.entry,
+        },
+      ],
+
+      type3: [
+        {
+          type: "advance level",
+          count: result.advance.length,
+          videos: result.advance,
+        },
+      ],
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
+};
+
+
+
+// GET BY STAGE (optional keep)
+// exports.getByStage = async (req, res) => {
+//   try {
+//     const stage = Number(req.params.stage);
+//     const videos = await Video.find({ stage });
+
+//     res.status(200).json({
+//       success: true,
+//       count: videos.length,
+//       data: videos,
+//     });
+//   } catch (error) {
+//     res.status(500).json({
+//       success: false,
+//       error: error.message,
+//     });
+//   }
+// };
+
+exports.addVideo = async (req, res) => {
+  try {
+    const {  userId, type,videoUrl } = req.body;
+
+    if (!userId || !type || !videoUrl) {
+      return res.status(400).json({
+        success: false,
+        message: "All fields are required",
+      });
+    }
+
+    const video = new Video({
+      videoUrl,
+      userId,
+      type,
+    });
+
+    await video.save();
+
+    res.status(201).json({
+      success: true,
+      message: "Video added successfully",
+      data: video,
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
+};
+
+exports.deleteVideo = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    await Video.findByIdAndDelete(id);
+
+    res.status(200).json({
+      success: true,
+      message: "Video deleted successfully",
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
+};
